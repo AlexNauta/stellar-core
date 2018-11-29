@@ -89,3 +89,7 @@ ccache -s
 export ALL_VERSIONS=1
 env TEMP_POSTGRES=0 NUM_PARTITIONS=4 RUN_PARTITIONS="$RUN_PARTITIONS" make check
 
+echo All done
+date
+exit 0
+
