@@ -61,7 +61,9 @@ committer=$(committer_of HEAD) \
     || committer=$(committer_of HEAD^1) \
     || committer=Latobarita
 
-config_flags="--enable-asan --enable-extrachecks --enable-ccache --enable-sdfprefs CXXFLAGS=-w"
+config_flags="--enable-asan --enable-extrachecks --enable-ccache --enable-sdfprefs"
+export CFLAGS="-O2 -ggdb"
+export CXXFLAGS="-w -O2 -ggdb"
 
 # disable leak detection: this requires the container to be run with
 # "--cap-add SYS_PTRACE" or "--privileged"
