@@ -6,6 +6,10 @@ set -ev
 
 echo $TRAVIS_PULL_REQUEST
 
+NPROCS=$(getconf _NPROCESSORS_ONLN)
+
+echo "Found $NPROCS processors"
+
 # Short-circuit transient 'auto-initialization' builds
 git fetch origin master
 MASTER=$(git describe --always FETCH_HEAD)
@@ -49,7 +53,7 @@ done
 
 committer_of(){
     local c=$(git cat-file -p "$1" 2> /dev/null \
-	| sed -ne '/^committer \([^<]*[^ <]\)  *<.*>.*/{s//\1/p; q;}')
+    | sed -ne '/^committer \([^<]*[^ <]\)  *<.*>.*/{s//\1/p; q;}')
     test -n "$c" -a Latobarita != "$c" && echo "$c"
 }
 committer=$(committer_of HEAD) \
@@ -57,14 +61,14 @@ committer=$(committer_of HEAD) \
     || committer=$(committer_of HEAD^1) \
     || committer=Latobarita
 
-case $committer in
-    "David Mazieres")
-        config_flags="--enable-asan --enable-ccache CXXFLAGS=-w"
-	;;
-    *)
-	config_flags="--enable-asan --enable-ccache --enable-sdfprefs CXXFLAGS=-w"
-	;;
-esac
+config_flags="--enable-asan --enable-extrachecks --enable-ccache --enable-sdfprefs"
+export CFLAGS="-O2 -ggdb"
+export CXXFLAGS="-w -O2 -ggdb"
+
+# disable leak detection: this requires the container to be run with
+# "--cap-add SYS_PTRACE" or "--privileged"
+# as the leak detector relies on ptrace
+export LSAN_OPTIONS=detect_leaks=0
 
 echo "committer = $committer, config_flags = $config_flags"
 
@@ -79,7 +83,13 @@ then
     git diff
     exit 1
 fi
-make -j3
+
+make -j$(($NPROCS + 1))
 ccache -s
 export ALL_VERSIONS=1
 env TEMP_POSTGRES=0 NUM_PARTITIONS=4 RUN_PARTITIONS="$RUN_PARTITIONS" make check
+
+echo All done
+date
+exit 0
+
